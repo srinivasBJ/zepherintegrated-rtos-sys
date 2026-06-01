@@ -1,0 +1,60 @@
+/*
+ * Vehicle Emergency Response System
+ * nRF52840-DK Device-Tree Overlay
+ *
+ * Hardware connections:
+ *   ADXL345  → I²C0 (SDA=P0.26, SCL=P0.27), INT1 → P0.31
+ *   MAX30102  → I²C0 (shared bus, addr 0x57)
+ *   PA1010D   → UART1 (TX=P0.06, RX=P0.08), 9600 baud
+ *   SIM800L   → UART2 (TX=P0.22, RX=P0.24), 115200 baud
+ */
+
+/ {
+    aliases {
+        accel-int = &accel_int_pin;
+    };
+
+    gpio_keys {
+        compatible = "gpio-keys";
+        accel_int_pin: accel_int_pin {
+            gpios = <&gpio0 31 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+            label = "ACCEL_INT1";
+        };
+    };
+};
+
+&i2c0 {
+    status = "okay";
+    sda-pin = <26>;
+    scl-pin = <27>;
+    clock-frequency = <I2C_BITRATE_FAST>;
+
+    adxl345: adxl345@53 {
+        compatible = "adi,adxl345";
+        reg = <0x53>;
+        label = "ADXL345";
+        int1-gpios = <&gpio0 31 GPIO_ACTIVE_HIGH>;
+    };
+
+    max30102: max30102@57 {
+        compatible = "maxim,max30102";
+        reg = <0x57>;
+        label = "MAX30102";
+    };
+};
+
+&uart1 {
+    status = "okay";
+    current-speed = <9600>;
+    tx-pin = <6>;
+    rx-pin = <8>;
+    label = "GPS_UART";
+};
+
+&uart2 {
+    status = "okay";
+    current-speed = <115200>;
+    tx-pin = <22>;
+    rx-pin = <24>;
+    label = "GSM_UART";
+};

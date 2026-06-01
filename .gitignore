@@ -1,0 +1,33 @@
+# Python build & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+
+# SQLite local databases
+*.db
+*.sqlite3
+
+# Zephyr RTOS builds & intermediate files
+build/
+*.obj
+*.o
+*.elf
+*.bin
+*.hex
+*.lst
+*.map
+*.stat
+
+# macOS system files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes

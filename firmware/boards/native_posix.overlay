@@ -1,0 +1,60 @@
+/*
+ * Vehicle Emergency Response System
+ * native_posix Device-Tree Overlay
+ *
+ * Provides I²C, UART, and GPIO nodes for simulation on a host Linux/macOS machine.
+ * On real hardware (nrf52840dk) use boards/nrf52840dk_nrf52840.overlay instead.
+ */
+
+/ {
+    chosen {
+        zephyr,console = &uart0;
+        zephyr,shell-uart = &uart0;
+    };
+
+    /* ─── Simulated GPIO interrupt from ADXL345 INT1 pin ─── */
+    aliases {
+        accel-int = &accel_int_pin;
+    };
+
+    gpio_keys {
+        compatible = "gpio-keys";
+        accel_int_pin: accel_int_pin {
+            gpios = <&gpio0 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>;
+            label = "ACCEL_INT1";
+        };
+    };
+};
+
+/* ─── I²C bus 0: ADXL345 (0x53) + MAX30102 (0x57) ─── */
+&i2c0 {
+    status = "okay";
+    clock-frequency = <I2C_BITRATE_FAST>;
+
+    adxl345: adxl345@53 {
+        compatible = "adi,adxl345";
+        reg = <0x53>;
+        label = "ADXL345";
+        int1-gpios = <&gpio0 0 GPIO_ACTIVE_HIGH>;
+    };
+
+    max30102: max30102@57 {
+        compatible = "maxim,max30102";
+        reg = <0x57>;
+        label = "MAX30102";
+    };
+};
+
+/* ─── UART1: GPS module (PA1010D) ─── */
+&uart1 {
+    status = "okay";
+    current-speed = <9600>;
+    label = "GPS_UART";
+};
+
+/* ─── UART2: GSM modem (SIM800L) ─── */
+&uart2 {
+    status = "okay";
+    current-speed = <115200>;
+    label = "GSM_UART";
+};
