@@ -44,6 +44,50 @@
   --transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+body.light-theme {
+  --bg-base:      #f3f4f6;
+  --bg-surface:   #ffffff;
+  --bg-card:      #ffffff;
+  --bg-card-hover:#f9fafb;
+  --border:       rgba(0, 0, 0, 0.08);
+  --border-hover: rgba(0, 0, 0, 0.15);
+  --border-glow:  rgba(0, 180, 255, 0.35);
+
+  --text-primary:   #111827;
+  --text-secondary: #4b5563;
+  --text-muted:     #9ca3af;
+}
+
+body.light-theme .bg-mesh {
+  background:
+    radial-gradient(ellipse 60% 40% at 10% 20%, rgba(0, 180, 255, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 30% at 90% 80%, rgba(168, 85, 247, 0.03) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 50% 50%, rgba(0, 245, 212, 0.01) 0%, transparent 60%);
+}
+
+.theme-toggle-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.15rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  border: 1px solid var(--border);
+}
+.theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+body.light-theme .theme-toggle-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
 /* --------------------------------------------------------------------------
    Reset & Core Page Structure
    -------------------------------------------------------------------------- */

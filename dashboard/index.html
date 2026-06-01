@@ -181,6 +181,9 @@
           <span class="top-bar-title" id="header-title">Overview Dashboard</span>
         </div>
         <div class="top-bar-right">
+          <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Light/Dark Theme">
+            <span id="theme-toggle-icon">🌙</span>
+          </button>
           <div class="clock" id="clock">--:--:--</div>
         </div>
       </header>
@@ -671,7 +674,11 @@
     const MAX_TRAIL_LENGTH = 150;
     const CHART_POINTS = 40;
 
-    // Load configurations from storage or defaults
+    // Load configurations dynamically from the active browser window host
+    const hostBase = window.location.host || 'localhost:8000';
+    const protoBase = window.location.protocol || 'http:';
+    const wsProto = protoBase === 'https:' ? 'wss:' : 'ws:';
+
     let settings = {
       smsTarget:       localStorage.getItem('vers_sms') || '+1 555-0199',
       ambulanceHotline:localStorage.getItem('vers_ambulance') || '911 (Ambulance)',
@@ -680,8 +687,8 @@
       rolloverTilt:    parseFloat(localStorage.getItem('vers_tilt')) || 60.0,
       hrHigh:          parseInt(localStorage.getItem('vers_hr_high')) || 140,
       hrLow:           parseInt(localStorage.getItem('vers_hr_low')) || 50,
-      apiUrl:          localStorage.getItem('vers_api') || 'http://localhost:8000',
-      wsUrl:           localStorage.getItem('vers_ws') || 'ws://localhost:8000/ws',
+      apiUrl:          localStorage.getItem('vers_api') || `${protoBase}//${hostBase}`,
+      wsUrl:           localStorage.getItem('vers_ws') || `${wsProto}//${hostBase}/ws`,
       noisePercent:    parseFloat(localStorage.getItem('vers_noise_p')) || 10.0
     };
 
@@ -696,6 +703,7 @@
     // Map object references
     let map, miniMap, drawerMap;
     let vehicleMarker, miniVehicleMarker, drawerMarker;
+    let currentTileLayer = null, currentMiniTileLayer = null, currentDrawerTileLayer = null;
     let trailPolyline = null;
     let trailCoordinates = [];
     let hideTrail = false;
@@ -819,6 +827,11 @@
     }
 
     function initMaps() {
+      const isLight = document.body.classList.contains('light-theme');
+      const darkTiles = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      const lightTiles = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      const activeTiles = isLight ? lightTiles : darkTiles;
+
       // 1. Live full screen map
       map = L.map('map', {
         center: [currentLat, currentLon],
@@ -826,7 +839,7 @@
         zoomControl: true,
         attributionControl: false
       });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { 
+      currentTileLayer = L.tileLayer(activeTiles, { 
         maxZoom: 19,
         attribution: '© OpenStreetMap, © CartoDB'
       }).addTo(map);
@@ -846,7 +859,7 @@
         doubleClickZoom: false,
         boxZoom: false
       });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { 
+      currentMiniTileLayer = L.tileLayer(activeTiles, { 
         maxZoom: 19,
         attribution: '© OpenStreetMap, © CartoDB'
       }).addTo(miniMap);
@@ -859,7 +872,7 @@
         zoomControl: false,
         attributionControl: false
       });
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { 
+      currentDrawerTileLayer = L.tileLayer(activeTiles, { 
         maxZoom: 19,
         attribution: '© OpenStreetMap, © CartoDB'
       }).addTo(drawerMap);
@@ -2017,9 +2030,71 @@
     }
 
     // -----------------------------------------------------------------
+    // Theme Switcher Logic (Light Mode / Dark Mode)
+    // -----------------------------------------------------------------
+    function setMapTilesForTheme(isLight) {
+      const darkTiles = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
+      const lightTiles = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      const url = isLight ? lightTiles : darkTiles;
+
+      if (map && currentTileLayer) {
+        map.removeLayer(currentTileLayer);
+        currentTileLayer = L.tileLayer(url, { maxZoom: 19 }).addTo(map);
+      }
+      if (miniMap && currentMiniTileLayer) {
+        miniMap.removeLayer(currentMiniTileLayer);
+        currentMiniTileLayer = L.tileLayer(url, { maxZoom: 19 }).addTo(miniMap);
+      }
+      if (drawerMap && currentDrawerTileLayer) {
+        drawerMap.removeLayer(currentDrawerTileLayer);
+        currentDrawerTileLayer = L.tileLayer(url, { maxZoom: 19 }).addTo(drawerMap);
+      }
+    }
+
+    function updateChartsTheme(isLight) {
+      const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.03)';
+      const tickColor = isLight ? '#4b5563' : '#6b7280';
+      const labelColor = isLight ? '#111827' : '#9ca3af';
+
+      const charts = [miniHrChartObj, miniAccChartObj, fullHrChartObj, fullAccChartObj, fullSpo2ChartObj];
+      charts.forEach(chart => {
+        if (chart) {
+          if (chart.options.scales && chart.options.scales.y) {
+            chart.options.scales.y.grid.color = gridColor;
+            chart.options.scales.y.ticks.color = tickColor;
+          }
+          if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
+            chart.options.plugins.legend.labels.color = labelColor;
+          }
+          chart.update('none');
+        }
+      });
+    }
+
+    function toggleTheme() {
+      const body = document.body;
+      const isLight = body.classList.toggle('light-theme');
+      localStorage.setItem('vers_theme', isLight ? 'light' : 'dark');
+
+      document.getElementById('theme-toggle-icon').textContent = isLight ? '☀️' : '🌙';
+      setMapTilesForTheme(isLight);
+      updateChartsTheme(isLight);
+      
+      showToast(`Switched to ${isLight ? 'Light' : 'Dark'} Theme`, 'info');
+    }
+
+    // -----------------------------------------------------------------
     // Boot Initialization
     // -----------------------------------------------------------------
     window.addEventListener('DOMContentLoaded', () => {
+      // Load saved theme preference
+      const savedTheme = localStorage.getItem('vers_theme') || 'dark';
+      if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        const toggleIcon = document.getElementById('theme-toggle-icon');
+        if (toggleIcon) toggleIcon.textContent = '☀️';
+      }
+
       // 1. Initialize Leaflet Maps
       initMaps();
 
